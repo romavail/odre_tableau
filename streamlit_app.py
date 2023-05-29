@@ -21,9 +21,9 @@ def main():
 
     # LOAD
 
-    df_pts = pd.read_csv("/datasets/points-injection.csv", sep=';')
-    df_mois = pd.read_csv("/datasets/production-mensuelle-biomethane.csv", sep=';')
-    df_horaire = pd.read_csv("/datasets/prod-nat-gaz-horaire-prov.csv", sep=';')
+    df_pts = pd.read_csv("points-injection.csv", sep=';')
+    df_mois = pd.read_csv("production-mensuelle-biomethane.csv", sep=';')
+    df_horaire = pd.read_csv("prod-nat-gaz-horaire-prov.csv", sep=';')
 
     # Section title
     st.subheader("Dataframe Production Horaire")
