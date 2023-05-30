@@ -10,14 +10,14 @@ import plotly as plty
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
+import plotly.graph_objects as go
 from folium.plugins import HeatMap
-from streamlit-folium import st_folium
-
+from streamlit_folium import st_folium
+from plotly.subplots import make_subplots
 
 
 def main():
 
-    st.title('Production de Biométhane - France')
 
     # LOAD
 
@@ -25,21 +25,13 @@ def main():
     df_mois = pd.read_csv("production-mensuelle-biomethane.csv", sep=';')
     df_horaire = pd.read_csv("prod-nat-gaz-horaire-prov.csv", sep=';')
 
-    # Section title
-    st.subheader("Dataframe Production Horaire")
-
-    #
-    st.dataframe(df_horaire.head(5))
 
     # VISUALIZE 
 
     # 1. Line Plot
 
     # Section title
-    st.subheader("Nombre De Sites Mis En Service Par An")
-
     # Pepare Data
-
     # Comptage des points d'injection
     df_pts_annee = (df_pts.groupby(by='Annee mise en service')
                             .count()
@@ -47,52 +39,91 @@ def main():
     
     df_pts_annee_plot = df_pts_annee[df_pts_annee['Annee mise en service'] != 2023].rename(columns={"Nom du site": "Nombre de sites"})
     
+    st.title('Production de biométhane - France')
+    st.subheader("")
+
+    st.subheader("0. Statistiques")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Nombre de sites", str(len(df_pts)))
+    col2.metric("1er site", df_pts['Date de mise en service'].min())
+    col3.metric("Capacité totale (GWh/an)", str(df_pts["Capacite de production (GWh/an)"].sum().round(1)))
+    st.subheader("")
+
+    #
+    st.subheader("1. Evolution du nombre de sites mis en service par an")
+
     # Plot
     fig = px.line(df_pts_annee_plot, 
-                  x="Annee mise en service", 
-                  y="Nombre de sites", 
-                  title='')
+                x="Annee mise en service", 
+                y="Nombre de sites", 
+                title='De 2011 à 2022')
     
     # Show
     st.plotly_chart(fig, use_container_width=True)
 
+     # Section title
+    st.subheader("2. Sites par capacité de production")
 
+    df_pts_bar = (df_pts[["Nom du site","Capacite de production (GWh/an)"]].sort_values("Capacite de production (GWh/an)", ascending=False)
+                                                                    .head(10)
+                                                                    .sort_values("Capacite de production (GWh/an)", ascending=True))
+    
+    df_pts_bar["Nom du site"] = [x[:15] for x in df_pts_bar["Nom du site"]]
+
+    fig = px.bar(df_pts_bar, 
+                y="Nom du site", 
+                x="Capacite de production (GWh/an)", 
+                orientation='h', 
+                title='Top 10')
+    
+    # Show
+    st.plotly_chart(fig, use_container_width=True)
+    
     # 2. Pie Plot
+    # Section title
+    st.subheader("3. Capacite de production par région (%)")
 
     # Section title
-    st.subheader("Part De La Capacite De Production Par Région (%)")
+    st.subheader("")
 
     #
-    annee = st.selectbox('année:',
+    annee = st.selectbox('Sélectionner une année:',
                         (df_pts['Annee mise en service'].sort_values().unique().tolist()),
-                        index=7
+                        index=10,
+                        key=1
                         )
     
     # Pepare Data
     df_pts_plot = df_pts[df_pts['Annee mise en service'] == annee][['Region',
-                                                                   'Capacite de production (GWh/an)']]
+                                                                'Capacite de production (GWh/an)']]
     
     # Plot
-    fig = px.pie(df_pts_plot, 
-                 values='Capacite de production (GWh/an)', 
-                 names='Region')
-    
-    fig.update_traces(textposition='inside',
-                      hole=.6, 
-                      hoverinfo="label+percent+name")
+    fig = make_subplots(rows=1, cols=1, specs=[[{'type':'domain'}]])
 
-    fig.update_layout(uniformtext_minsize=12, 
-                      uniformtext_mode='hide', 
-                      title_text="")
     
+    fig.add_trace(go.Pie(labels=df_pts_plot['Region'].to_list(), 
+                         values=df_pts_plot['Capacite de production (GWh/an)'], 
+                         name="GHG Emissions"),
+                        1, 1)
+    
+ 
+    # Use `hole` to create a donut-like pie chart
+    fig.update_traces(hole=0.7, 
+                      hoverinfo="label+percent+name", 
+                      pull=[0,0,0,0.2,0,0,0,0,0,0,0,0],
+                      textposition='outside')
+    
+    fig.update_layout(title_text="Capacite de production par région (%) en " + str(annee))
+    
+  
     # Show
     st.plotly_chart(fig, use_container_width=True)
-    
+
 
     # 3. Bar Plot
 
     # Section title
-    st.subheader("Production Nationale Horaire ")
+    st.subheader("4. Production nationale horaire")
 
     # Prepare Data
 
@@ -102,14 +133,7 @@ def main():
                 'mois',
                 'jour']] = df_horaire['Journée gazière'].str.split('-', expand=True)
     
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        annee = st.selectbox('année:',
-                            (df_horaire['annee'].sort_values().unique().tolist())
-                            )
-    
-        heures_liste = [
+    heures_liste = [
                         '00:00',
                         '01:00',
                         '02:00',
@@ -135,38 +159,76 @@ def main():
                         '22:00',
                         '23:00'
                         ]
+    
+    col1, col2 = st.columns(2)
+
+    with col1:
+        date_1 = st.date_input(
+                            "Sélectionner une date de début:",
+                            datetime.date(2022, 1, 1))
+        #st.write('date de début:', date_1)
+        h_min = st.selectbox('Sélectionner une heure de début:',
+                         (heures_liste),
+                         index=6)
+
+    with col2:
+        date_2 = st.date_input(
+                            "Sélectionner une date de fin:",
+                            datetime.date(2022, 1, 7))
+        #st.write('date de fin:', date_2)
+        h_max = st.selectbox('Sélectionner une heure de fin:',
+                         (heures_liste),
+                         index=12)
 
     
 
-    with col2:
-        h_min = st.selectbox('heure min:',
-                         (heures_liste),
-                         index=0)
+    # reformat months and days
+    if date_1.month < 10:
+        month_1 = '0' + str(date_1.month)
+    else:
+        month_1 = str(date_1.month)
 
-    with col3:
-        h_max = st.selectbox('heure max:',
-                         (heures_liste),
-                          index=6)
+    if date_2.month < 10:
+        month_2 = '0' + str(date_2.month)
+    else:
+        month_2 = str(date_2.month)
+
+    if date_1.day < 10:
+        day_1 = '0' + str(date_1.day)
+    else:
+        day_1 = str(date_1.day)
+
+    if date_2.day < 10:
+        day_2 = '0' + str(date_2.day)
+    else:
+        day_2 = str(date_2.day)
 
     # Prepare data
-    df_horaire_week = (df_horaire.loc[(df_horaire['annee'] >= str(annee)) &
-                                      (df_horaire['annee'] <= str(annee)) 
-                                     ] 
-                                 .sort_values('jour')
-                                 .drop(columns=['id', 
-                                                'Annee/Mois',
-                                                #'Journée gazière',
-                                                'Production Journalière (MWh PCS)', 
-                                                'Opérateur',
-                                                "Nombre de sites d'injection raccordés au réseau de transport",
-                                                'Statut de la donnée', 
-                                                'annee', 
-                                                'mois', 
-                                                'jour'
-                                               ]
-                                      )
-                                 .set_index('Journée gazière')
-                                 .loc[:, h_min:h_max]
+    df_horaire_week = (df_horaire.loc[(df_horaire['annee'] >= str(date_1.year)) &
+                                      (df_horaire['annee'] <= str(date_2.year)) &
+                                       (df_horaire['mois'] >= month_1) &
+                                       (df_horaire['mois'] <= month_2) &
+                                       (df_horaire['jour'] >= day_1) &
+                                       (df_horaire['jour'] <= day_2) 
+                                    ]
+                        )
+               
+    
+
+    df_horaire_week = (df_horaire_week.drop(columns=['id', 
+                                                        'Annee/Mois',
+                                                        #'Journée gazière',
+                                                        'Production Journalière (MWh PCS)', 
+                                                        'Opérateur',
+                                                        "Nombre de sites d'injection raccordés au réseau de transport",
+                                                        'Statut de la donnée', 
+                                                        'annee', 
+                                                        'mois', 
+                                                        'jour'
+                                                    ]
+                                            )
+                                        .set_index('Journée gazière')
+                                        .loc[:,h_min:h_max]
                         )
     #  Plot     
     fig = px.bar(df_horaire_week,
@@ -186,7 +248,7 @@ def main():
     # 4. Folium Plot
     
     # Section title
-    st.subheader("Localisation Des Sites De Production")
+    st.subheader("5. Localisation des sites")
     st.subheader("")
 
     # Prepare Data 
@@ -199,7 +261,8 @@ def main():
     # Plot 
     m = folium.Map(location=[46.7111,  1.7191],
                  zoom_start=6.2,
-                 tiles="CartoDB Positron"
+                 tiles="CartoDB Positron",
+                 title='xxx'
                  )
 
     # Heatmap
