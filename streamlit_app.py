@@ -57,7 +57,7 @@ def main():
 
     with col1:
         #
-        st.subheader("1. Evolution du nombre de sites mis en service")
+        st.subheader("1. Nombre de sites mis en service")
 
         # 1. Line Plot
         fig = px.line(df_pts_annee_plot, 
