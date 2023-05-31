@@ -84,7 +84,7 @@ def main():
         
         # Plot 
         m = folium.Map(location=[46.7111,  1.7191],
-                    zoom_start=5.5,
+                    zoom_start=4.5,
                     tiles="CartoDB Positron",
                     title='xxx',
                     )
@@ -106,7 +106,7 @@ def main():
                         )
 
         # Show
-        st_folium(m, width=600, height=600)
+        st_folium(m, width=500, height=400)
 
        
     with col3:
