@@ -128,7 +128,8 @@ def main():
                     y="Nom du site", 
                     x="Capacite de production (GWh/an)", 
                     orientation='h', 
-                    title='Top: ' + str(top_value))
+                    #title='Top: ' + str(top_value)
+                    )
         
         # Show
         st.plotly_chart(fig, use_container_width=True)
