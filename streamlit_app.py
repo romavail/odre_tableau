@@ -52,9 +52,7 @@ def main():
     st.subheader("")
 
 
-
     col1, col2, col3 = st.columns(3)
-
     with col1:
         #
         st.subheader("1. Nombre de sites mis en service")
@@ -73,7 +71,9 @@ def main():
         
         # Section title
         st.subheader("2. Localisation des sites")
-        st.subheader("")
+        st.subheader(" ")
+        st.subheader(" ")
+        st.subheader(" ")
 
         # Prepare Data 
 
@@ -114,18 +114,21 @@ def main():
         # Section title
         st.subheader("3. Sites par capacité de production")
 
+        top_value = st.slider('Top', 0, 30, 10)
+
         df_pts_bar = (df_pts[["Nom du site","Capacite de production (GWh/an)"]].sort_values("Capacite de production (GWh/an)", ascending=False)
-                                                                        .head(10)
+                                                                        .head(top_value)
                                                                         .sort_values("Capacite de production (GWh/an)", ascending=True))
         
         df_pts_bar["Nom du site"] = [x[:15] for x in df_pts_bar["Nom du site"]]
 
+       
         # 2. Bar Plot
         fig = px.bar(df_pts_bar, 
                     y="Nom du site", 
                     x="Capacite de production (GWh/an)", 
                     orientation='h', 
-                    title='Top 10')
+                    title='Top: ' + str(top_value))
         
         # Show
         st.plotly_chart(fig, use_container_width=True)
@@ -134,6 +137,7 @@ def main():
 
     # Section title
     st.subheader("4. Production nationale horaire")
+    st.subheader(" ")
 
     # Prepare Data
 
@@ -174,7 +178,7 @@ def main():
     
     with col1:
 
-        col1_bis, col2_bis = st.columns(2)
+        col1_bis, col2_bis, col3_bis, col4_bis = st.columns(4)
 
         with col1_bis:
             date_1 = st.date_input(
@@ -184,7 +188,7 @@ def main():
             h_min = st.selectbox('Sélectionner une heure de début:',
                             (heures_liste),
                             index=6)
-
+    
         with col2_bis:
             date_2 = st.date_input(
                                 "Sélectionner une date de fin:",
@@ -194,7 +198,6 @@ def main():
                             (heures_liste),
                             index=12)
 
-    
    
         # reformat months and days
         if date_1.month < 10:
@@ -264,9 +267,9 @@ def main():
         st.subheader("5. Capacite de production par région (%)")
 
         # Section title
-        st.subheader("")
+        st.subheader(" ")
 
-        col1_ter, col2_ter = st.columns(2)
+        col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
 
         with col1_ter:
 
