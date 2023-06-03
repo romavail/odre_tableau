@@ -16,10 +16,16 @@ from streamlit_folium import st_folium
 from plotly.subplots import make_subplots
 
 
-def main():
 
+def main():
     #
     st.set_page_config(layout="wide")
+
+    #import .css style sheet
+    with open('static/style.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+  
 
     # LOAD
     df_pts = pd.read_csv("points-injection.csv", sep=';')
@@ -41,6 +47,7 @@ def main():
     df_pts_annee_plot = df_pts_annee[df_pts_annee['Annee mise en service'] != 2023].rename(columns={"Nom du site": "Nombre de sites"})
     
     st.title('Production de Biométhane en France')
+    st.markdown("---")
     st.subheader("")
     st.subheader("0. Statistiques")
 
@@ -76,39 +83,16 @@ def main():
         st.subheader(" ")
 
         # Prepare Data 
+        df_pts[['latitude', 'longitude']] = df_pts[df_pts['Annee mise en service'] == 2022]['Coordonnees'].str.split(', ', expand=True)
 
-        df_pts[['longitude', 'latitude']] = df_pts[df_pts['Annee mise en service'] == 2022]['Coordonnees'].str.split(', ', expand=True)
-
-        df_sample = df_pts[df_pts['Annee mise en service'] == 2022][['longitude',
-                                                                    'latitude']]
-        
+        df_sample = df_pts[df_pts['Annee mise en service'] == 2022][['latitude',
+                                                                     'longitude']]
+        df_sample[['longitude']] = df_sample[['longitude']].astype(float)
+        df_sample[['latitude']] = df_sample[['latitude']].astype(float)
+    
         # Plot 
-        m = folium.Map(location=[46.7111,  1.7191],
-                    zoom_start=4.5,
-                    tiles="CartoDB Positron",
-                    title='xxx',
-                    )
+        st.map(df_sample)
 
-        # Heatmap
-        HeatMap(df_sample,
-                radius=14,
-                min_opacity=0.7,
-            ).add_to(m)
-
-        # Add the Circles 
-        df_sample.apply(lambda x:folium.Circle(location=[x['longitude'],
-                                                        x['latitude']],
-                                            radius=100,
-                                            fill=False,
-                                            color='black',
-                                            ).add_to(m),
-                        axis=1
-                        )
-
-        # Show
-        st_folium(m, width=500, height=400)
-
-       
     with col3:
         # 3. Bar Plot
         # Section title
