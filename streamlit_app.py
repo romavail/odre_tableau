@@ -33,20 +33,41 @@ def main():
     st.title("Production de Biométhane en France")
     st.markdown("---")
 
-    # KPIs
-    st.subheader("0. Statistiques")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Nombre de sites", str(len(df_pts)), "5%")
-    col2.metric(
-        "Capacité totale (GWh/an)",
-        str(df_pts["Capacite de production (GWh/an)"].sum().round(1)), "8%")
-    col3.metric("1er site", df_pts["Date de mise en service"].min(), "")
-    
-
     # Layout
     col1, col2 = st.columns([2,1])
+
     with col1:
-        
+        # KPIs
+        st.subheader("0. Statistiques")
+        col1_, col2_, col3_ = st.columns(3)
+        col1_.metric("Nombre de sites", str(len(df_pts)), "5%")
+        col2_.metric(
+            "Capacité totale (GWh/an)",
+            str(df_pts["Capacite de production (GWh/an)"].sum().round(1)), "8%")
+        col3_.metric("1er site", df_pts["Date de mise en service"].min(), "")
+
+    with col2:
+        #
+        st.subheader("2. Localisation des sites")
+
+        # Prepare Data
+        df_pts[["latitude", "longitude"]] = df_pts[
+            df_pts["Annee mise en service"] == 2022
+        ]["Coordonnees"].str.split(", ", expand=True)
+
+        df_sample = df_pts[df_pts["Annee mise en service"] == 2022][
+            ["latitude", "longitude"]
+        ]
+        df_sample[["longitude"]] = df_sample[["longitude"]].astype(float)
+        df_sample[["latitude"]] = df_sample[["latitude"]].astype(float)
+
+        # 2. Map Plot
+        st.map(df_sample)
+
+    #
+    col1, col2 = st.columns([1,2])
+
+    with col1:
         st.subheader("1. Nombre de sites mis en service")
 
         # Prepare data
@@ -68,107 +89,63 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("2. Localisation des sites")
 
-        # Prepare Data
-        df_pts[["latitude", "longitude"]] = df_pts[
-            df_pts["Annee mise en service"] == 2022
-        ]["Coordonnees"].str.split(", ", expand=True)
+        st.subheader("5. Capacite de production par région (%)")
 
-        df_sample = df_pts[df_pts["Annee mise en service"] == 2022][
-            ["latitude", "longitude"]
+        col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
+
+        with col1_ter:
+            # streamlit component
+            annee = st.selectbox(
+                "Sélectionner une année:",
+                (df_pts["Annee mise en service"].sort_values().unique().tolist()),
+                index=10,
+                key=1,
+            )
+
+        # Pepare Data
+        df_pts_plot = df_pts[df_pts["Annee mise en service"] == annee][
+            ["Region", "Capacite de production (GWh/an)"]
         ]
-        df_sample[["longitude"]] = df_sample[["longitude"]].astype(float)
-        df_sample[["latitude"]] = df_sample[["latitude"]].astype(float)
 
-        # 2. Map Plot
-        st.map(df_sample)
+        # 5. Pie Plot
+        fig = make_subplots(rows=1, cols=2, specs=[[{"type": "domain"}, {"type": "domain"}]])
 
-    #
-    col1 = st.columns(1)
-
-    st.subheader("4. Production nationale horaire")
-
-    # Prepare Data
-    df_horaire[["annee", "mois", "jour"]] = df_horaire["Journée gazière"].str.split(
-        "-", expand=True
-    )
-
-    #
-    heures_liste = [
-        "0" + str(i) + ":00" if i < 10 else str(i) + ":00" for i in range(24)
-    ]
-
-    col1_bis, col2_bis, col3_bis, col4_bis = st.columns(4)
-
-    with col1_bis:
-        # streamlit component
-        date_1 = st.date_input(
-            "Sélectionner une date de début:", datetime.date(2022, 1, 1)
-        )
-        # streamlit component
-        h_min = st.selectbox(
-            "Sélectionner une heure de début:", (heures_liste), index=6
+        fig.add_trace(
+            go.Pie(
+                labels=df_pts_plot["Region"].to_list(),
+                values=df_pts_plot["Capacite de production (GWh/an)"],
+                name="",
+            ),
+            1,
+            1,
         )
 
-    with col2_bis:
-        # streamlit component
-        date_2 = st.date_input(
-            "Sélectionner une date de fin:", datetime.date(2022, 1, 21)
+        fig.add_trace(
+            go.Pie(
+                labels=df_pts_plot["Region"].to_list(),
+                values=df_pts_plot["Capacite de production (GWh/an)"],
+                name="GHG Emissions",
+            ),
+            1,
+            2,
         )
-        # streamlit component
-        h_max = st.selectbox(
-            "Sélectionner une heure de fin:", (heures_liste), index=12
+
+        # Use `hole` to create a donut-like pie chart
+        fig.update_traces(
+            hole=0.7,
+            hoverinfo="label+percent+name",
+            pull=[0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 0, 0],
+            textposition="outside",
         )
 
-    # Prepare data
-    month_1 = "0" + str(date_1.month) if date_1.month < 10 else str(date_1.month)
-    month_2 = "0" + str(date_2.month) if date_2.month < 10 else str(date_2.month)
+        # fig.update_layout(
+        #     title_text="Capacite de production par région (%) en " + str(annee)
+        # )
 
-    day_1 = "0" + str(date_1.day) if date_1.day < 10 else str(date_1.day)
-    day_2 = "0" + str(date_2.day) if date_2.day < 10 else str(date_2.day)
-
-    df_horaire_week = df_horaire.loc[
-        (df_horaire["annee"] >= str(date_1.year))
-        & (df_horaire["annee"] <= str(date_2.year))
-        & (df_horaire["mois"] >= month_1)
-        & (df_horaire["mois"] <= month_2)
-        & (df_horaire["jour"] >= day_1)
-        & (df_horaire["jour"] <= day_2)
-    ]
-
-    df_horaire_week = (
-        df_horaire_week.drop(
-            columns=[
-                "id",
-                "Annee/Mois",
-                #'Journée gazière',
-                "Production Journalière (MWh PCS)",
-                "Opérateur",
-                "Nombre de sites d'injection raccordés au réseau de transport",
-                "Statut de la donnée",
-                "annee",
-                "mois",
-                "jour",
-            ]
-        )
-        .set_index("Journée gazière")
-        .loc[:, h_min:h_max]
-    )
-
-    # 4. Bar Plot
-    fig = px.bar(
-        df_horaire_week,
-        labels={
-            "value": "Production (MWh PCS)",
-            "variable": "Heure",
-        },
-        title=("Production Horaire Nationale"),
-    )
-
-    # Show
-    st.plotly_chart(fig, use_container_width=True)
-
+        st.plotly_chart(fig, use_container_width=True)
+    
+    
     col1, col2 = st.columns([1,2])
 
     with col1:
@@ -199,60 +176,91 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("5. Capacite de production par région (%)")
 
-        col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
+        st.subheader("4. Production nationale horaire")
 
-        with col1_ter:
-            # streamlit component
-            annee = st.selectbox(
-                "Sélectionner une année:",
-                (df_pts["Annee mise en service"].sort_values().unique().tolist()),
-                index=10,
-                key=1,
-            )
+        # Prepare Data
+        df_horaire[["annee", "mois", "jour"]] = df_horaire["Journée gazière"].str.split(
+            "-", expand=True
+        )
 
-        # Pepare Data
-        df_pts_plot = df_pts[df_pts["Annee mise en service"] == annee][
-            ["Region", "Capacite de production (GWh/an)"]
+        #
+        heures_liste = [
+            "0" + str(i) + ":00" if i < 10 else str(i) + ":00" for i in range(24)
         ]
 
-        # 5. Pie Plot
-        fig = make_subplots(rows=1, cols=2, specs=[[{"type": "domain"},{"type": "domain"}]])
+        col1_, col2_, col3_, col4_ = st.columns(4)
 
-        fig.add_trace(
-            go.Pie(
-                labels=df_pts_plot["Region"].to_list(),
-                values=df_pts_plot["Capacite de production (GWh/an)"],
-                name="GHG Emissions",
-            ),
-            1,
-            1,
+        with col1_:
+            # streamlit component
+            date_1 = st.date_input(
+                "Sélectionner une date de début:", datetime.date(2022, 1, 1)
+            )
+
+        with col2_:
+            # streamlit component
+            h_min = st.selectbox(
+                "Sélectionner une heure de début:", (heures_liste), index=6
+            )
+        with col3_:
+            # streamlit component
+            date_2 = st.date_input(
+                "Sélectionner une date de fin:", datetime.date(2022, 1, 21)
+            )
+        with col4_:
+            # streamlit component
+            h_max = st.selectbox(
+                "Sélectionner une heure de fin:", (heures_liste), index=12
+            )
+
+        # Prepare data
+        month_1 = "0" + str(date_1.month) if date_1.month < 10 else str(date_1.month)
+        month_2 = "0" + str(date_2.month) if date_2.month < 10 else str(date_2.month)
+
+        day_1 = "0" + str(date_1.day) if date_1.day < 10 else str(date_1.day)
+        day_2 = "0" + str(date_2.day) if date_2.day < 10 else str(date_2.day)
+
+        df_horaire_week = df_horaire.loc[
+            (df_horaire["annee"] >= str(date_1.year))
+            & (df_horaire["annee"] <= str(date_2.year))
+            & (df_horaire["mois"] >= month_1)
+            & (df_horaire["mois"] <= month_2)
+            & (df_horaire["jour"] >= day_1)
+            & (df_horaire["jour"] <= day_2)
+        ]
+
+        df_horaire_week = (
+            df_horaire_week.drop(
+                columns=[
+                    "id",
+                    "Annee/Mois",
+                    #'Journée gazière',
+                    "Production Journalière (MWh PCS)",
+                    "Opérateur",
+                    "Nombre de sites d'injection raccordés au réseau de transport",
+                    "Statut de la donnée",
+                    "annee",
+                    "mois",
+                    "jour",
+                ]
+            )
+            .set_index("Journée gazière")
+            .loc[:, h_min:h_max]
         )
 
-        fig.add_trace(
-            go.Pie(
-                labels=df_pts_plot["Region"].to_list(),
-                values=df_pts_plot["Capacite de production (GWh/an)"],
-                name="GHG Emissions",
-            ),
-            1,
-            2,
+        # 4. Bar Plot
+        fig = px.bar(
+            df_horaire_week,
+            labels={
+                "value": "Production (MWh PCS)",
+                "variable": "Heure",
+            },
+            title=("Production Horaire Nationale"),
         )
 
-        # Use `hole` to create a donut-like pie chart
-        fig.update_traces(
-            hole=0.7,
-            hoverinfo="label+percent+name",
-            pull=[0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 0, 0],
-            textposition="outside",
-        )
-
-        fig.update_layout(
-            title_text="Capacite de production par région (%) en " + str(annee)
-        )
-
+        # Show
         st.plotly_chart(fig, use_container_width=True)
+       
 
 
 main()
