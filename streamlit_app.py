@@ -20,22 +20,16 @@ def main():
     # Configuring web page
     st.set_page_config(layout="wide")
 
-    # Importing .css style sheet
-    # with open("static/style.css") as f:
-    #     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
     # Loading datasets
     df_pts = pd.read_csv("points-injection.csv", sep=";")
     df_mois = pd.read_csv("production-mensuelle-biomethane.csv", sep=";")
     df_horaire = pd.read_csv("prod-nat-gaz-horaire-prov.csv", sep=";")
 
-    # Dashboard ---->
     st.title("Production de Biométhane en France")
     st.markdown("---")
 
     # Layout
     col1, col2 = st.columns([2,1])
-
     with col1:
         # KPIs
         st.subheader("0. Statistiques")
@@ -47,9 +41,7 @@ def main():
         col3_.metric("1er site", df_pts["Date de mise en service"].min(), "")
 
     with col2:
-        #
         st.subheader("2. Localisation des sites")
-
         # Prepare Data
         df_pts[["latitude", "longitude"]] = df_pts[
             df_pts["Annee mise en service"] == 2022
@@ -66,10 +58,8 @@ def main():
 
     #
     col1, col2 = st.columns([1,2])
-
     with col1:
         st.subheader("1. Nombre de sites mis en service")
-
         # Prepare data
         df_pts_annee = df_pts.groupby(by="Annee mise en service").count().reset_index()
 
@@ -84,14 +74,10 @@ def main():
             y="Nombre de sites",
             title="De 2011 à 2022",
         )
-
-        # Show
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-
         st.subheader("5. Capacite de production par région (%)")
-
         col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
 
         with col1_ter:
@@ -110,7 +96,6 @@ def main():
 
         # 5. Pie Plot
         fig = make_subplots(rows=1, cols=2, specs=[[{"type": "domain"}, {"type": "domain"}]])
-
         fig.add_trace(
             go.Pie(
                 labels=df_pts_plot["Region"].to_list(),
@@ -120,7 +105,6 @@ def main():
             1,
             1,
         )
-
         fig.add_trace(
             go.Pie(
                 labels=df_pts_plot["Region"].to_list(),
@@ -130,7 +114,6 @@ def main():
             1,
             2,
         )
-
         # Use `hole` to create a donut-like pie chart
         fig.update_traces(
             hole=0.7,
@@ -138,31 +121,22 @@ def main():
             pull=[0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 0, 0],
             textposition="outside",
         )
-
-        # fig.update_layout(
-        #     title_text="Capacite de production par région (%) en " + str(annee)
-        # )
-
         st.plotly_chart(fig, use_container_width=True)
     
-    
+
     col1, col2 = st.columns([1,2])
-
     with col1:
-        
         st.subheader("3. Sites par capacité de production")
-
         # streamlit component
         top_value = st.slider("Top", 0, 30, 18)
 
-    #     # Prepare data
+        # Prepare data
         df_pts_bar = (
             df_pts[["Nom du site", "Capacite de production (GWh/an)"]]
             .sort_values("Capacite de production (GWh/an)", ascending=False)
             .head(top_value)
             .sort_values("Capacite de production (GWh/an)", ascending=True)
         )
-
         df_pts_bar["Nom du site"] = [x[:15] for x in df_pts_bar["Nom du site"]]
 
         # 3. Bar Plot
@@ -172,31 +146,25 @@ def main():
             x="Capacite de production (GWh/an)",
             orientation="h",
         )
-
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-
         st.subheader("4. Production nationale horaire")
-
         # Prepare Data
         df_horaire[["annee", "mois", "jour"]] = df_horaire["Journée gazière"].str.split(
             "-", expand=True
         )
-
-        #
+    
         heures_liste = [
             "0" + str(i) + ":00" if i < 10 else str(i) + ":00" for i in range(24)
         ]
 
         col1_, col2_, col3_, col4_ = st.columns(4)
-
         with col1_:
             # streamlit component
             date_1 = st.date_input(
                 "Sélectionner une date de début:", datetime.date(2022, 1, 1)
             )
-
         with col2_:
             # streamlit component
             h_min = st.selectbox(
@@ -216,7 +184,6 @@ def main():
         # Prepare data
         month_1 = "0" + str(date_1.month) if date_1.month < 10 else str(date_1.month)
         month_2 = "0" + str(date_2.month) if date_2.month < 10 else str(date_2.month)
-
         day_1 = "0" + str(date_1.day) if date_1.day < 10 else str(date_1.day)
         day_2 = "0" + str(date_2.day) if date_2.day < 10 else str(date_2.day)
 
@@ -257,10 +224,7 @@ def main():
             },
             title=("Production Horaire Nationale"),
         )
-
         # Show
         st.plotly_chart(fig, use_container_width=True)
        
-
-
 main()
