@@ -57,7 +57,7 @@ def main():
         ].rename(columns={"Nom du site": "Nombre de sites"})
 
         # 1. Line Plot
-        fig = px.line(
+        fig = px.area(
             df_pts_annee_plot,
             x="Annee mise en service",
             y="Nombre de sites",
