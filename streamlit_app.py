@@ -21,8 +21,8 @@ def main():
     st.set_page_config(layout="wide")
 
     # Importing .css style sheet
-    with open("static/style.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    # with open("static/style.css") as f:
+    #     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
     # Loading datasets
     df_pts = pd.read_csv("points-injection.csv", sep=";")
@@ -36,12 +36,12 @@ def main():
     # KPIs
     st.subheader("0. Statistiques")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Nombre de sites", str(len(df_pts)))
-    col2.metric("1er site", df_pts["Date de mise en service"].min())
-    col3.metric(
+    col1.metric("Nombre de sites", str(len(df_pts)), "5%")
+    col2.metric(
         "Capacité totale (GWh/an)",
-        str(df_pts["Capacite de production (GWh/an)"].sum().round(1)),
-    )
+        str(df_pts["Capacite de production (GWh/an)"].sum().round(1)), "8%")
+    col3.metric("1er site", df_pts["Date de mise en service"].min(), "")
+    
 
     # Layout
     col1, col2 = st.columns([2,1])
@@ -218,7 +218,7 @@ def main():
         ]
 
         # 5. Pie Plot
-        fig = make_subplots(rows=1, cols=1, specs=[[{"type": "domain"}]])
+        fig = make_subplots(rows=1, cols=2, specs=[[{"type": "domain"},{"type": "domain"}]])
 
         fig.add_trace(
             go.Pie(
@@ -228,6 +228,16 @@ def main():
             ),
             1,
             1,
+        )
+
+        fig.add_trace(
+            go.Pie(
+                labels=df_pts_plot["Region"].to_list(),
+                values=df_pts_plot["Capacite de production (GWh/an)"],
+                name="GHG Emissions",
+            ),
+            1,
+            2,
         )
 
         # Use `hole` to create a donut-like pie chart
