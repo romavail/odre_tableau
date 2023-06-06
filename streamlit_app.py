@@ -176,7 +176,7 @@ def main():
         st.subheader("3. Sites par capacité de production")
 
         # streamlit component
-        top_value = st.slider("Top", 0, 30, 10)
+        top_value = st.slider("Top", 0, 30, 18)
 
     #     # Prepare data
         df_pts_bar = (
