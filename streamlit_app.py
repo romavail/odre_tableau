@@ -46,6 +46,8 @@ def main():
         st.dataframe(df_horaire)
 
     # KPIs
+    st.subheader(" ")
+    st.subheader(" ")
     st.subheader("1. Statistiques")
     col1_, col2_, col3_ = st.columns(3)
     col1_.metric("Nombre de sites", str(len(df_pts)), "5%")
@@ -56,13 +58,10 @@ def main():
 
 
     # Layout
+    st.subheader(" ")
     col1, col2 = st.columns([2,1])
     with col1:
-        
-
         st.subheader("2. Nombre de sites mis en service")
-        st.subheader(" ")
-        st.subheader(" ")
         min_year, max_year = st.select_slider('Sélectionnez une période',
                                        options=list_years,
                                        value=('2013', '2022'))
@@ -86,33 +85,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("3. Localisation des sites")
-
-        # Prepare Data
-        years = st.multiselect(
-                            'Sélectionnez une année de mise en service',
-                            list_years,
-                            default='2022'
-                            )
-        if len(years) >= 1:
-            df_sample = df_pts[df_pts["Annee mise en service"].astype(str).replace(",", "").isin(years)]
-
-            df_sample[["latitude", "longitude"]] = df_sample["Coordonnees"].str.split(", ", expand=True)
-            df_sample[["latitude", "longitude"]] = df_sample[['latitude','longitude']].astype(float)
-
-            #2. Map Plot
-            st.map(df_sample[['latitude','longitude']].dropna(how = 'any'))
-
-        else:
-            st.write("No results.")
-
-    st.subheader(" ")
-    st.subheader(" ")
-
-    #
-    col1, col2 = st.columns([1,2])
-    with col1:
-        st.subheader("4. Sites par capacité de production")
+        st.subheader("3. Sites par capacité de production")
         # streamlit component
         top_value = st.slider("Top", 0, 30, 18)
 
@@ -133,53 +106,95 @@ def main():
             orientation="h",
         )
         st.plotly_chart(fig, use_container_width=True)
+       
+    st.subheader(" ")
+    st.subheader(" ")
+    st.subheader("4. Localisation des sites")
 
-    with col2:
-        st.subheader("5. Capacite de production par région (%)")
-        col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
+    # Prepare Data
+    years = st.multiselect(
+                        'Sélectionnez une année de mise en service',
+                        list_years,
+                        default='2022'
+                        )
+    if len(years) >= 1:
+        df_sample = df_pts[df_pts["Annee mise en service"].astype(str).replace(",", "").isin(years)]
 
-        with col1_ter:
-            # streamlit component
-            annee = st.selectbox(
-                "Sélectionner une année:",
-                (df_pts["Annee mise en service"].sort_values().unique().tolist()),
-                index=10,
-                key=1,
-            )
+        df_sample[["latitude", "longitude"]] = df_sample["Coordonnees"].str.split(", ", expand=True)
+        df_sample[["latitude", "longitude"]] = df_sample[['latitude','longitude']].astype(float)
 
-        # Pepare Data
-        df_pts_plot = df_pts[df_pts["Annee mise en service"] == annee][
-            ["Region", "Capacite de production (GWh/an)"]
-        ]
+        #2. Map Plot
+        st.map(df_sample[['latitude','longitude']].dropna(how = 'any'))
 
-        # 5. Pie Plot
-        fig = make_subplots(rows=1, cols=2, specs=[[{"type": "domain"}, {"type": "domain"}]])
-        fig.add_trace(
-            go.Pie(
-                labels=df_pts_plot["Region"].to_list(),
-                values=df_pts_plot["Capacite de production (GWh/an)"],
-                name="",
-            ),
-            1,
-            1,
+    else:
+        st.write("No results.")
+
+    st.subheader(" ")
+    st.subheader("5. Capacite de production par région (%)")
+    col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
+
+    with col1_ter:
+        # streamlit component
+        annee = st.selectbox(
+            "Sélectionner une année:",
+            (df_pts["Annee mise en service"].sort_values().unique().tolist()),
+            index=10,
+            key=1,
         )
-        fig.add_trace(
-            go.Pie(
-                labels=df_pts_plot["Region"].to_list(),
-                values=df_pts_plot["Capacite de production (GWh/an)"],
-                name="GHG Emissions",
-            ),
-            1,
-            2,
-        )
-        # Use `hole` to create a donut-like pie chart
-        fig.update_traces(
-            hole=0.7,
-            hoverinfo="label+percent+name",
-            pull=[0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 0, 0],
-            textposition="outside",
-        )
-        st.plotly_chart(fig, use_container_width=True)
+
+    # Pepare Data
+    df_pts_plot = df_pts[df_pts["Annee mise en service"] == annee][
+        ["Region", "Capacite de production (GWh/an)"]
+    ]
+
+    # 5. Pie Plot
+    fig = make_subplots(rows=1, cols=3, specs=[[{"type": "domain"}, {"type": "domain"}, {"type": "domain"}]])
+    fig.add_trace(
+        go.Pie(
+            labels=df_pts_plot["Region"].to_list(),
+            values=df_pts_plot["Capacite de production (GWh/an)"],
+            name="",
+        ),
+        1,
+        1,
+    )
+    fig.add_trace(
+        go.Pie(
+            labels=df_pts_plot["Region"].to_list(),
+            values=df_pts_plot["Capacite de production (GWh/an)"],
+            name="GHG Emissions",
+        ),
+        1,
+        2,
+    )
+
+    fig.add_trace(
+        go.Pie(
+            labels=df_pts_plot["Region"].to_list(),
+            values=df_pts_plot["Capacite de production (GWh/an)"],
+            name="GHG Emissions",
+        ),
+        1,
+        3,
+    )
+
+    # Use `hole` to create a donut-like pie chart
+    fig.update_traces(
+        hole=0.7,
+        hoverinfo="label+percent+name",
+        pull=[0, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 0, 0],
+        textposition="outside",
+    )
+
+    fig.update_layout(
+
+    font=dict(
+        size=14,
+        
+    )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
     
 
     col1,  = st.columns(1)
