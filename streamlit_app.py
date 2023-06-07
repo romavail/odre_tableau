@@ -18,7 +18,7 @@ from plotly.subplots import make_subplots
 
 def main():
     # Configuring web page
-    st.set_page_config(layout="wide", theme="light")
+    st.set_page_config(layout="wide")
 
     # Loading datasets
     df_pts = pd.read_csv("points-injection.csv", sep=";")
