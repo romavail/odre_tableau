@@ -60,12 +60,13 @@ def main():
     with col1:
         
 
-        st.subheader("3. Nombre de sites mis en service")
-
+        st.subheader("2. Nombre de sites mis en service")
+        st.subheader(" ")
+        st.subheader(" ")
         min_year, max_year = st.select_slider('Sélectionnez une période',
                                        options=list_years,
                                        value=('2013', '2022'))
-
+      
         # Prepare data
         df_pts_annee = df_pts.groupby(by="Annee mise en service").count().reset_index()
 
@@ -85,7 +86,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("2. Localisation des sites")
+        st.subheader("3. Localisation des sites")
 
         # Prepare Data
         years = st.multiselect(
@@ -111,7 +112,7 @@ def main():
     #
     col1, col2 = st.columns([1,2])
     with col1:
-        st.subheader("5. Sites par capacité de production")
+        st.subheader("4. Sites par capacité de production")
         # streamlit component
         top_value = st.slider("Top", 0, 30, 18)
 
@@ -134,7 +135,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("4. Capacite de production par région (%)")
+        st.subheader("5. Capacite de production par région (%)")
         col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
 
         with col1_ter:
