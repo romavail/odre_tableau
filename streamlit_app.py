@@ -25,46 +25,52 @@ def main():
     df_mois = pd.read_csv("production-mensuelle-biomethane.csv", sep=";")
     df_horaire = pd.read_csv("prod-nat-gaz-horaire-prov.csv", sep=";")
 
+    list_years = ['2011', '2012', '2013', '2014', '2015', '2016', 
+                '2017', '2018', '2019', '2020','2021', '2022', '2023']
+
     st.title("Production de Biométhane en France")
     st.markdown("---")
+
+
+    st.subheader("0. Données")
+    with st.expander("Données"):
+        tab1, tab2, tab3 = st.tabs(["points-injection.csv", 
+                                    "production-mensuelle-biomethane.csv",
+                                    "prod-nat-gaz-horaire-prov.csv"])
+
+    with tab1:
+        st.dataframe(df_pts)
+    with tab2:
+        st.dataframe(df_mois)
+    with tab3:
+        st.dataframe(df_horaire)
+
+    # KPIs
+    st.subheader("1. Statistiques")
+    col1_, col2_, col3_ = st.columns(3)
+    col1_.metric("Nombre de sites", str(len(df_pts)), "5%")
+    col2_.metric(
+        "Capacité totale (GWh/an)",
+        str(df_pts["Capacite de production (GWh/an)"].sum().round(1)), "8%")
+    col3_.metric("1er site", df_pts["Date de mise en service"].min(), "")
+
 
     # Layout
     col1, col2 = st.columns([2,1])
     with col1:
-        # KPIs
-        st.subheader("0. Statistiques")
-        col1_, col2_, col3_ = st.columns(3)
-        col1_.metric("Nombre de sites", str(len(df_pts)), "5%")
-        col2_.metric(
-            "Capacité totale (GWh/an)",
-            str(df_pts["Capacite de production (GWh/an)"].sum().round(1)), "8%")
-        col3_.metric("1er site", df_pts["Date de mise en service"].min(), "")
+        
 
-    with col2:
-        st.subheader("2. Localisation des sites")
-        # Prepare Data
-        df_pts[["latitude", "longitude"]] = df_pts[
-            df_pts["Annee mise en service"] == 2022
-        ]["Coordonnees"].str.split(", ", expand=True)
+        st.subheader("3. Nombre de sites mis en service")
 
-        df_sample = df_pts[df_pts["Annee mise en service"] == 2022][
-            ["latitude", "longitude"]
-        ]
-        df_sample[["longitude"]] = df_sample[["longitude"]].astype(float)
-        df_sample[["latitude"]] = df_sample[["latitude"]].astype(float)
+        min_year, max_year = st.select_slider('Sélectionnez une période',
+                                       options=list_years,
+                                       value=('2013', '2022'))
 
-        # 2. Map Plot
-        st.map(df_sample)
-
-    #
-    col1, col2 = st.columns([1,2])
-    with col1:
-        st.subheader("1. Nombre de sites mis en service")
         # Prepare data
         df_pts_annee = df_pts.groupby(by="Annee mise en service").count().reset_index()
 
         df_pts_annee_plot = df_pts_annee[
-            df_pts_annee["Annee mise en service"] != 2023
+            (df_pts_annee["Annee mise en service"] >= int(min_year)) & (df_pts_annee["Annee mise en service"] <= int(max_year)) 
         ].rename(columns={"Nom du site": "Nombre de sites"})
 
         # 1. Line Plot
@@ -72,12 +78,63 @@ def main():
             df_pts_annee_plot,
             x="Annee mise en service",
             y="Nombre de sites",
-            title="De 2011 à 2022",
+            title="De " + str(min_year) + " à " + str(max_year)
+        )
+
+        # Show
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.subheader("2. Localisation des sites")
+
+        # Prepare Data
+        years = st.multiselect(
+                            'Sélectionnez une année de mise en service',
+                            list_years,
+                            default='2022'
+                            )
+        if len(years) >= 1:
+            df_sample = df_pts[df_pts["Annee mise en service"].astype(str).replace(",", "").isin(years)]
+
+            df_sample[["latitude", "longitude"]] = df_sample["Coordonnees"].str.split(", ", expand=True)
+            df_sample[["latitude", "longitude"]] = df_sample[['latitude','longitude']].astype(float)
+
+            #2. Map Plot
+            st.map(df_sample[['latitude','longitude']].dropna(how = 'any'))
+
+        else:
+            st.write("No results.")
+
+    st.subheader(" ")
+    st.subheader(" ")
+
+    #
+    col1, col2 = st.columns([1,2])
+    with col1:
+        st.subheader("5. Sites par capacité de production")
+        # streamlit component
+        top_value = st.slider("Top", 0, 30, 18)
+
+        # Prepare data
+        df_pts_bar = (
+            df_pts[["Nom du site", "Capacite de production (GWh/an)"]]
+            .sort_values("Capacite de production (GWh/an)", ascending=False)
+            .head(top_value)
+            .sort_values("Capacite de production (GWh/an)", ascending=True)
+        )
+        df_pts_bar["Nom du site"] = [x[:15] for x in df_pts_bar["Nom du site"]]
+
+        # 3. Bar Plot
+        fig = px.bar(
+            df_pts_bar,
+            y="Nom du site",
+            x="Capacite de production (GWh/an)",
+            orientation="h",
         )
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.subheader("5. Capacite de production par région (%)")
+        st.subheader("4. Capacite de production par région (%)")
         col1_ter, col2_ter, col3_ter, col4_ter = st.columns(4)
 
         with col1_ter:
@@ -124,32 +181,9 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
     
 
-    col1, col2 = st.columns([1,2])
+    col1,  = st.columns(1)
     with col1:
-        st.subheader("3. Sites par capacité de production")
-        # streamlit component
-        top_value = st.slider("Top", 0, 30, 18)
-
-        # Prepare data
-        df_pts_bar = (
-            df_pts[["Nom du site", "Capacite de production (GWh/an)"]]
-            .sort_values("Capacite de production (GWh/an)", ascending=False)
-            .head(top_value)
-            .sort_values("Capacite de production (GWh/an)", ascending=True)
-        )
-        df_pts_bar["Nom du site"] = [x[:15] for x in df_pts_bar["Nom du site"]]
-
-        # 3. Bar Plot
-        fig = px.bar(
-            df_pts_bar,
-            y="Nom du site",
-            x="Capacite de production (GWh/an)",
-            orientation="h",
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        st.subheader("4. Production nationale horaire")
+        st.subheader("6. Production nationale horaire")
         # Prepare Data
         df_horaire[["annee", "mois", "jour"]] = df_horaire["Journée gazière"].str.split(
             "-", expand=True
@@ -163,22 +197,22 @@ def main():
         with col1_:
             # streamlit component
             date_1 = st.date_input(
-                "Sélectionner une date de début:", datetime.date(2022, 1, 1)
+                "Sélectionnez une date de début:", datetime.date(2022, 1, 1)
             )
         with col2_:
             # streamlit component
             h_min = st.selectbox(
-                "Sélectionner une heure de début:", (heures_liste), index=6
+                "Sélectionnez une heure de début:", (heures_liste), index=6
             )
         with col3_:
             # streamlit component
             date_2 = st.date_input(
-                "Sélectionner une date de fin:", datetime.date(2022, 1, 21)
+                "Sélectionnez une date de fin:", datetime.date(2022, 1, 21)
             )
         with col4_:
             # streamlit component
             h_max = st.selectbox(
-                "Sélectionner une heure de fin:", (heures_liste), index=12
+                "Sélectionnez une heure de fin:", (heures_liste), index=12
             )
 
         # Prepare data
